@@ -1,23 +1,56 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import NewsManager from './components/NewsManager';
 import PipelineControls from './components/PipelineControls';
 import ConfigPanel from './components/ConfigPanel';
 import ActivityLogs from './components/ActivityLogs';
 import ManualPost from './components/ManualPost';
+import AdminPanel from './components/AdminPanel';
+import LoginPage from './components/LoginPage';
 import ApiKeyModal from './components/ApiKeyModal';
-import { getHealth } from './api/client';
+import { getHealth, adminLogout } from './api/client';
 import './App.css';
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem('api_key') || '');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [adminToken, setAdminToken] = useState(localStorage.getItem('admin_token') || '');
+  const [admin, setAdmin] = useState(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     checkConnection();
   }, [apiKey]);
+
+  useEffect(() => {
+    // Check if we have admin info stored (token is in HttpOnly cookie)
+    const savedAdmin = localStorage.getItem('admin_info');
+    if (savedAdmin) {
+      try {
+        const admin = JSON.parse(savedAdmin);
+        setAdmin(admin);
+        setAdminToken('authenticated'); // Set flag to indicate we have admin info
+      } catch {}
+    }
+  }, []);
+
+  // Listen for auth expiration events from API client
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setAdminToken('');
+      setAdmin(null);
+    };
+    
+    window.addEventListener('auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('auth-expired', handleAuthExpired);
+  }, []);
 
   const checkConnection = async () => {
     try {
@@ -37,6 +70,40 @@ function App() {
     setShowApiKeyModal(false);
     checkConnection();
   };
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleLogin = (token, adminInfo) => {
+    // Token is now stored in HttpOnly cookie by the backend
+    // Only store admin info in localStorage (not sensitive)
+    localStorage.setItem('admin_info', JSON.stringify(adminInfo));
+    setAdminToken('authenticated'); // Just a flag, actual token in cookie
+    setAdmin(adminInfo);
+  };
+
+  const handleLogout = async () => {
+    // Call logout endpoint to clear cookie
+    try {
+      await adminLogout();
+    } catch (e) {
+      // Continue even if logout call fails
+    }
+    localStorage.removeItem('admin_info');
+    setAdminToken('');
+    setAdmin(null);
+  };
+
+  // If not logged in, show login page
+  // Check both adminToken flag and admin info
+  if (!adminToken && !admin) {
+    return (
+      <div className="app" data-theme={theme}>
+        <LoginPage onLogin={handleLogin} theme={theme} toggleTheme={toggleTheme} />
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -73,15 +140,30 @@ function App() {
               <span className="nav-icon">✍️</span>
               Manual Post
             </NavLink>
+            {admin?.role === 'super_admin' && (
+              <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                <span className="nav-icon">👑</span>
+                Admin Panel
+              </NavLink>
+            )}
           </div>
           
           <div className="sidebar-footer">
+            <div style={{ padding: '10px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+              👤 {admin?.username} ({admin?.role})
+            </div>
+            <button className="theme-toggle" onClick={toggleTheme}>
+              {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
+            </button>
             <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
               <span className="status-dot"></span>
               {isConnected ? 'Connected' : 'Disconnected'}
             </div>
             <button className="api-key-btn" onClick={() => setShowApiKeyModal(true)}>
               🔑 API Key
+            </button>
+            <button className="api-key-btn" onClick={handleLogout} style={{ color: 'var(--accent-red)' }}>
+              🚪 Logout
             </button>
           </div>
         </nav>
@@ -94,6 +176,11 @@ function App() {
             <Route path="/config" element={<ConfigPanel />} />
             <Route path="/logs" element={<ActivityLogs />} />
             <Route path="/post" element={<ManualPost />} />
+            <Route path="/admin" element={
+              admin?.role === 'super_admin' 
+                ? <AdminPanel /> 
+                : <Navigate to="/" replace />
+            } />
           </Routes>
         </main>
         

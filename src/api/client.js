@@ -10,14 +10,19 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'X-API-Key': API_KEY,
   },
+  withCredentials: true, // Enable sending cookies (for HttpOnly admin_token cookie)
 });
 
-// Add API key from localStorage if available
+// Add API key from localStorage (admin token now in HttpOnly cookie)
 api.interceptors.request.use((config) => {
   const storedKey = localStorage.getItem('api_key');
   if (storedKey) {
     config.headers['X-API-Key'] = storedKey;
   }
+  
+  // Note: admin_token is now stored in HttpOnly cookie, so we don't need to set it here
+  // The browser will automatically send cookies with requests
+  
   return config;
 });
 
@@ -25,8 +30,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      console.error('API Authentication failed');
+    if (error.response?.status === 401) {
+      // Clear token and redirect to login if not already on login page
+      const isLoginRequest = error.config?.url?.includes('/admin/login');
+      if (!isLoginRequest) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        // Trigger a page reload to show login
+        window.dispatchEvent(new Event('auth-expired'));
+      }
     }
     return Promise.reject(error);
   }
@@ -70,5 +82,20 @@ export const createManualPost = (text, imageUrl = null, link = null) => {
   if (link) params.append('link', link);
   return api.post(`/post/manual?${params.toString()}`);
 };
+
+// Admin Authentication
+export const adminLogin = (username, password) => 
+  api.post('/admin/login', { username, password });
+
+export const adminLogout = () => api.post('/admin/logout');
+
+export const getCurrentAdmin = () => api.get('/admin/me');
+
+export const listAdmins = () => api.get('/admin/list');
+
+export const createAdmin = (username, password, role = 'admin') =>
+  api.post('/admin/create', { username, password, role });
+
+export const deleteAdmin = (username) => api.delete(`/admin/${username}`);
 
 export default api;

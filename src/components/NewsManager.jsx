@@ -12,25 +12,57 @@ import {
 function NewsManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [statusFilter, setStatusFilter] = useState('drafted');
   const [editModal, setEditModal] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [alert, setAlert] = useState(null);
+  const [nextOffset, setNextOffset] = useState(null);
+  const [totalLoaded, setTotalLoaded] = useState(0);
+
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     loadItems();
   }, [statusFilter]);
 
-  const loadItems = async () => {
-    setLoading(true);
+  const loadItems = async (append = false, offset = null) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setItems([]);
+      setNextOffset(null);
+    }
+    
     try {
-      const response = await getNews({ status: statusFilter, limit: 50 });
-      setItems(response.data.items || []);
+      const response = await getNews({ 
+        status: statusFilter, 
+        limit: PAGE_SIZE,
+        offset: offset 
+      });
+      const newItems = response.data.items || [];
+      
+      if (append) {
+        setItems(prev => [...prev, ...newItems]);
+      } else {
+        setItems(newItems);
+      }
+      
+      setNextOffset(response.data.next_offset);
+      setTotalLoaded(prev => append ? prev + newItems.length : newItems.length);
     } catch (error) {
       console.error('Failed to load items:', error);
       showAlert('error', 'Failed to load news items');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (nextOffset && !loadingMore) {
+      loadItems(true, nextOffset);
     }
   };
 
@@ -173,9 +205,13 @@ function NewsManager() {
           <p>No news items with status "{statusFilter}"</p>
         </div>
       ) : (
-        <div className="news-list">
-          {items.map((item) => (
-            <div key={item.id} className="news-item">
+        <>
+          <div className="pagination-info">
+            Showing {items.length} items
+          </div>
+          <div className="news-list">
+            {items.map((item) => (
+              <div key={item.id} className="news-item">
               <div className="news-item-header">
                 <div>
                   <div className="news-item-title">{item.payload.original_title}</div>
@@ -266,7 +302,34 @@ function NewsManager() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          
+          {/* Load More Button */}
+          {nextOffset && (
+            <div className="pagination-controls">
+              <button 
+                className="btn btn-primary btn-load-more"
+                onClick={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <>
+                    <span className="loading-spinner-small"></span>
+                    Loading...
+                  </>
+                ) : (
+                  '📄 Load More'
+                )}
+              </button>
+            </div>
+          )}
+          
+          {!nextOffset && items.length > 0 && (
+            <div className="pagination-end">
+              ✓ All {items.length} items loaded
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Modal */}
