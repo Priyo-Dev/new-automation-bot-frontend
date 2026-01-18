@@ -15,6 +15,7 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [adminToken, setAdminToken] = useState(localStorage.getItem('admin_token') || '');
   const [admin, setAdmin] = useState(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -38,10 +39,42 @@ function App() {
     const handleAuthExpired = () => {
       setAdminToken('');
       setAdmin(null);
+      setMobileNavOpen(false);
     };
     
     window.addEventListener('auth-expired', handleAuthExpired);
     return () => window.removeEventListener('auth-expired', handleAuthExpired);
+  }, []);
+
+  // Lock background scroll when mobile nav is open
+  useEffect(() => {
+    if (!mobileNavOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
+
+  // Close the mobile nav when resizing to desktop
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 768) setMobileNavOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Close on Escape (mobile drawer)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   const toggleTheme = () => {
@@ -66,6 +99,7 @@ function App() {
     localStorage.removeItem('admin_info');
     setAdminToken('');
     setAdmin(null);
+    setMobileNavOpen(false);
   };
 
   // If not logged in, show login page
@@ -81,7 +115,37 @@ function App() {
   return (
     <Router>
       <div className="app">
-        <nav className="sidebar">
+        {/* Mobile Topbar (CSS shows on phone only) */}
+        <header className="mobile-topbar">
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen(v => !v)}
+          >
+            ☰
+          </button>
+          <div className="mobile-topbar-title">TechPulse</div>
+          <button
+            type="button"
+            className="mobile-topbar-action"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </header>
+
+        {/* Mobile Backdrop (CSS shows on phone only) */}
+        <div
+          className={`mobile-backdrop ${mobileNavOpen ? 'open' : ''}`}
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+
+        <nav className={`sidebar ${mobileNavOpen ? 'open' : ''}`}>
           <div className="logo">
             <span className="logo-icon">📰</span>
             <h1>TechPulse</h1>
@@ -89,32 +153,60 @@ function App() {
           </div>
           
           <div className="nav-links">
-            <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            <NavLink
+              to="/"
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => setMobileNavOpen(false)}
+            >
               <span className="nav-icon">📊</span>
               Dashboard
             </NavLink>
-            <NavLink to="/news" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            <NavLink
+              to="/news"
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => setMobileNavOpen(false)}
+            >
               <span className="nav-icon">📝</span>
               News Manager
             </NavLink>
-            <NavLink to="/pipeline" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            <NavLink
+              to="/pipeline"
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => setMobileNavOpen(false)}
+            >
               <span className="nav-icon">⚙️</span>
               Pipeline
             </NavLink>
-            <NavLink to="/config" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            <NavLink
+              to="/config"
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => setMobileNavOpen(false)}
+            >
               <span className="nav-icon">🔧</span>
               Config
             </NavLink>
-            <NavLink to="/logs" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            <NavLink
+              to="/logs"
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => setMobileNavOpen(false)}
+            >
               <span className="nav-icon">📋</span>
               Logs
             </NavLink>
-            <NavLink to="/post" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            <NavLink
+              to="/post"
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => setMobileNavOpen(false)}
+            >
               <span className="nav-icon">✍️</span>
               Manual Post
             </NavLink>
             {admin?.role === 'super_admin' && (
-              <NavLink to="/admin" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                onClick={() => setMobileNavOpen(false)}
+              >
                 <span className="nav-icon">👑</span>
                 Admin Panel
               </NavLink>

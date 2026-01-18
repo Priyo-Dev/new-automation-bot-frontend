@@ -207,6 +207,45 @@ body {
   min-width: 0;
 }
 
+/* Mobile topbar + drawer (phone) */
+.mobile-topbar {
+  display: none;
+}
+.mobile-backdrop {
+  display: none;
+}
+
+.mobile-menu-btn,
+.mobile-topbar-action {
+  appearance: none;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.05s;
+}
+.mobile-menu-btn:active,
+.mobile-topbar-action:active {
+  transform: translateY(1px);
+}
+.mobile-menu-btn:hover,
+.mobile-topbar-action:hover {
+  background: var(--bg-hover);
+}
+.mobile-topbar-title {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* Page Headers */
 .page-header {
   margin-bottom: 30px;
@@ -880,30 +919,82 @@ tr:hover {
   .dashboard > div[style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
   }
-  
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    flex-direction: row;
-    justify-content: space-around;
-    padding: 10px;
-    flex: 0 0 auto;
+
+  /* Topbar */
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    padding: 0 14px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 1300;
   }
-  
+
+  /* Drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(86vw, 320px);
+    padding: 18px;
+    transform: translateX(-105%);
+    transition: transform 220ms ease;
+    z-index: 1400;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+    z-index: 1350;
+  }
+  .mobile-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .logo,
   .sidebar-footer {
-    display: none;
+    display: flex;
   }
-  
+
   .nav-links {
-    flex-direction: row;
-    gap: 5px;
+    flex-direction: column;
+    gap: 8px;
   }
-  
+
+  /* Override the <=1024 collapsed-sidebar rules so the drawer shows full labels */
+  .logo h1,
+  .logo .subtitle,
+  .nav-link span:not(.nav-icon),
+  .api-key-btn {
+    display: inline !important;
+  }
+  .nav-link {
+    justify-content: flex-start !important;
+    padding: 14px 16px !important;
+  }
+
   .main-content {
-    margin-top: 60px;
-    padding: 15px;
+    margin-top: 0;
+    padding: 16px;
+    padding-top: calc(56px + 16px);
   }
 }
 
