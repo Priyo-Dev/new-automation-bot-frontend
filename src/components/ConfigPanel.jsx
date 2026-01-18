@@ -92,7 +92,7 @@ function ConfigPanel() {
         <div className="card-header">
           <div className="card-title">📊 Current Estimates</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
           <div style={{ textAlign: 'center', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent-blue)' }}>
               {estimates?.scout_runs_per_day || 0}

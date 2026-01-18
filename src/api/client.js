@@ -59,6 +59,7 @@ export const approveNewsItem = (id) => api.post(`/news/${id}/approve`);
 export const rejectNewsItem = (id) => api.post(`/news/${id}/reject`);
 export const regenerateText = (id) => api.post(`/news/${id}/regenerate-text`);
 export const regenerateImage = (id) => api.post(`/news/${id}/regenerate-image`);
+export const generateContent = (id) => api.post(`/news/${id}/generate`);
 
 // Pipeline Controls
 export const runScan = (blocking = false) => api.post(`/system/run-scan?blocking=${blocking}`);

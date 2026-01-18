@@ -111,15 +111,14 @@ function PipelineControls() {
         </div>
       )}
 
-      {/* Action Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-        
+      {/* Action Cards - 2x2 Grid */}
+      <div className="pipeline-grid">
         {/* Scout */}
-        <div className="card">
+        <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header">
             <div className="card-title">🔍 News Scout</div>
           </div>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', minHeight: '48px' }}>
             Scan news sources for new tech stories. Fetches headlines and checks for duplicates.
           </p>
           <button
@@ -133,11 +132,11 @@ function PipelineControls() {
         </div>
 
         {/* Content Generation */}
-        <div className="card">
+        <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header">
             <div className="card-title">✍️ Content Generation</div>
           </div>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', minHeight: '48px' }}>
             Generate Bangla Facebook posts and images for new items using AI agents.
           </p>
           <button
@@ -151,11 +150,11 @@ function PipelineControls() {
         </div>
 
         {/* Full Pipeline */}
-        <div className="card">
+        <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header">
             <div className="card-title">🚀 Full Pipeline</div>
           </div>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', minHeight: '48px' }}>
             Run the complete pipeline: Scout → Content Generation → Editor Review.
           </p>
           <button
@@ -169,7 +168,7 @@ function PipelineControls() {
         </div>
 
         {/* Auto Publish */}
-        <div className="card">
+        <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header">
             <div className="card-title">📤 Auto Publish</div>
           </div>

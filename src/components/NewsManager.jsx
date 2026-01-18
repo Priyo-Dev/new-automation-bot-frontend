@@ -7,6 +7,7 @@ import {
   rejectNewsItem,
   regenerateText,
   regenerateImage,
+  generateContent,
 } from '../api/client';
 
 function NewsManager() {
@@ -144,6 +145,19 @@ function NewsManager() {
     }
   };
 
+  const handleGenerateContent = async (item) => {
+    setItemLoading(item.id, 'generate', true);
+    try {
+      await generateContent(item.id);
+      showAlert('success', 'Content generated! Item moved to Drafted.');
+      loadItems();
+    } catch (error) {
+      showAlert('error', error.response?.data?.detail || 'Failed to generate content');
+    } finally {
+      setItemLoading(item.id, 'generate', false);
+    }
+  };
+
   const handleSaveEdit = async (itemId, updates) => {
     try {
       await editNewsItem(itemId, updates);
@@ -186,9 +200,8 @@ function NewsManager() {
             <option value="rejected">Rejected</option>
           </select>
         </div>
-        <div className="filter-group" style={{ marginLeft: 'auto' }}>
-          <label>&nbsp;</label>
-          <button className="btn btn-secondary" onClick={loadItems}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={() => loadItems()}>
             🔄 Refresh
           </button>
         </div>
@@ -224,7 +237,7 @@ function NewsManager() {
                 </span>
               </div>
 
-              <div className="news-item-content">
+              <div className={`news-item-content ${item.payload.image_url ? 'has-image' : 'no-image'}`}>
                 <div className="news-item-text">
                   {item.payload.fb_post_text || 'No post text generated yet'}
                 </div>
@@ -254,7 +267,20 @@ function NewsManager() {
               </div>
 
               <div className="news-item-actions" style={{ marginTop: '16px' }}>
-                {(item.payload.status === 'drafted' || item.payload.status === 'new') && (
+                {/* Generate Content button for NEW items */}
+                {item.payload.status === 'new' && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleGenerateContent(item)}
+                    disabled={actionLoading[`${item.id}-generate`]}
+                    style={{ minWidth: '160px' }}
+                  >
+                    {actionLoading[`${item.id}-generate`] ? '⏳ Generating...' : '✨ Generate Content'}
+                  </button>
+                )}
+                
+                {/* Approve/Reject for drafted items */}
+                {item.payload.status === 'drafted' && (
                   <>
                     <button
                       className="btn btn-success"
@@ -272,26 +298,38 @@ function NewsManager() {
                     </button>
                   </>
                 )}
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setEditModal(item)}
-                >
-                  ✏️ Edit
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleRegenerateText(item)}
-                  disabled={actionLoading[`${item.id}-regen-text`]}
-                >
-                  {actionLoading[`${item.id}-regen-text`] ? '...' : '🔄 Regen Text'}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleRegenerateImage(item)}
-                  disabled={actionLoading[`${item.id}-regen-image`]}
-                >
-                  {actionLoading[`${item.id}-regen-image`] ? '...' : '🎨 Regen Image'}
-                </button>
+                
+                {/* Edit button for new and drafted */}
+                {(item.payload.status === 'new' || item.payload.status === 'drafted') && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setEditModal(item)}
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+                
+                {/* Regen buttons only for drafted items (they already have content) */}
+                {item.payload.status === 'drafted' && (
+                  <>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleRegenerateText(item)}
+                      disabled={actionLoading[`${item.id}-regen-text`]}
+                    >
+                      {actionLoading[`${item.id}-regen-text`] ? '...' : '🔄 Regen Text'}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleRegenerateImage(item)}
+                      disabled={actionLoading[`${item.id}-regen-image`]}
+                    >
+                      {actionLoading[`${item.id}-regen-image`] ? '...' : '🎨 Regen Image'}
+                    </button>
+                  </>
+                )}
+                
+                {/* Delete always available */}
                 <button
                   className="btn btn-danger"
                   onClick={() => handleDelete(item)}

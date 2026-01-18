@@ -99,21 +99,21 @@ function ActivityLogs() {
 
       {/* Summary Stats */}
       {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div className="stat-card blue" style={{ padding: '16px' }}>
-            <div className="stat-value" style={{ fontSize: '24px' }}>{summary.total_entries}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          <div className="stat-card blue" style={{ padding: '20px' }}>
+            <div className="stat-value" style={{ fontSize: '28px' }}>{summary.total_entries}</div>
             <div className="stat-label">Total Logs</div>
           </div>
-          <div className="stat-card green" style={{ padding: '16px' }}>
-            <div className="stat-value" style={{ fontSize: '24px' }}>{summary.by_level?.info || 0}</div>
+          <div className="stat-card green" style={{ padding: '20px' }}>
+            <div className="stat-value" style={{ fontSize: '28px' }}>{summary.by_level?.info || 0}</div>
             <div className="stat-label">Info</div>
           </div>
-          <div className="stat-card orange" style={{ padding: '16px' }}>
-            <div className="stat-value" style={{ fontSize: '24px' }}>{summary.by_level?.warning || 0}</div>
+          <div className="stat-card orange" style={{ padding: '20px' }}>
+            <div className="stat-value" style={{ fontSize: '28px' }}>{summary.by_level?.warning || 0}</div>
             <div className="stat-label">Warnings</div>
           </div>
-          <div className="stat-card red" style={{ padding: '16px' }}>
-            <div className="stat-value" style={{ fontSize: '24px' }}>{summary.by_level?.error || 0}</div>
+          <div className="stat-card red" style={{ padding: '20px' }}>
+            <div className="stat-value" style={{ fontSize: '28px' }}>{summary.by_level?.error || 0}</div>
             <div className="stat-label">Errors</div>
           </div>
         </div>
@@ -197,7 +197,7 @@ function ActivityLogs() {
             <p>Activity logs will appear here as the pipeline runs</p>
           </div>
         ) : (
-          <div className="logs-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+          <div className="logs-list" style={{ maxHeight: 'calc(100vh - 400px)', minHeight: '400px', overflowY: 'auto' }}>
             {logs.map((log, index) => (
               <div key={index} className={`log-entry ${log.level}`}>
                 <div className="log-entry-header">

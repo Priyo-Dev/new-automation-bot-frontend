@@ -8,14 +8,10 @@ import ActivityLogs from './components/ActivityLogs';
 import ManualPost from './components/ManualPost';
 import AdminPanel from './components/AdminPanel';
 import LoginPage from './components/LoginPage';
-import ApiKeyModal from './components/ApiKeyModal';
-import { getHealth, adminLogout } from './api/client';
+import { adminLogout } from './api/client';
 import './App.css';
 
 function App() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('api_key') || '');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [adminToken, setAdminToken] = useState(localStorage.getItem('admin_token') || '');
   const [admin, setAdmin] = useState(null);
@@ -24,10 +20,6 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    checkConnection();
-  }, [apiKey]);
 
   useEffect(() => {
     // Check if we have admin info stored (token is in HttpOnly cookie)
@@ -51,25 +43,6 @@ function App() {
     window.addEventListener('auth-expired', handleAuthExpired);
     return () => window.removeEventListener('auth-expired', handleAuthExpired);
   }, []);
-
-  const checkConnection = async () => {
-    try {
-      await getHealth();
-      setIsConnected(true);
-    } catch (error) {
-      setIsConnected(false);
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        setShowApiKeyModal(true);
-      }
-    }
-  };
-
-  const handleApiKeySave = (key) => {
-    localStorage.setItem('api_key', key);
-    setApiKey(key);
-    setShowApiKeyModal(false);
-    checkConnection();
-  };
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -155,13 +128,6 @@ function App() {
             <button className="theme-toggle" onClick={toggleTheme}>
               {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
             </button>
-            <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-              <span className="status-dot"></span>
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </div>
-            <button className="api-key-btn" onClick={() => setShowApiKeyModal(true)}>
-              🔑 API Key
-            </button>
             <button className="api-key-btn" onClick={handleLogout} style={{ color: 'var(--accent-red)' }}>
               🚪 Logout
             </button>
@@ -183,14 +149,6 @@ function App() {
             } />
           </Routes>
         </main>
-        
-        {showApiKeyModal && (
-          <ApiKeyModal
-            currentKey={apiKey}
-            onSave={handleApiKeySave}
-            onClose={() => setShowApiKeyModal(false)}
-          />
-        )}
       </div>
     </Router>
   );

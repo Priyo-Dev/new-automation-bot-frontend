@@ -64,7 +64,7 @@ function ManualPost() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Post Form */}
         <div className="card">
           <div className="card-header">
