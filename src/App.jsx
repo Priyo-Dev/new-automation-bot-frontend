@@ -72,7 +72,7 @@ function App() {
   // Check both adminToken flag and admin info
   if (!adminToken && !admin) {
     return (
-      <div className="app" data-theme={theme}>
+      <div data-theme={theme} style={{ width: '100%', minHeight: '100vh' }}>
         <LoginPage onLogin={handleLogin} theme={theme} toggleTheme={toggleTheme} />
       </div>
     );

@@ -34,10 +34,12 @@ function LoginPage({ onLogin, theme, toggleTheme }) {
         ? 'linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%)'
         : 'linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%)',
       padding: '20px',
+      width: '100%',
     }}>
       <div style={{
         width: '100%',
         maxWidth: '420px',
+        margin: '0 auto',
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>

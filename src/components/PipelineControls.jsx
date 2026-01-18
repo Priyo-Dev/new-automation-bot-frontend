@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   runScan,
   runGeneration,
@@ -13,21 +13,36 @@ function PipelineControls() {
   const [loading, setLoading] = useState({});
   const [alert, setAlert] = useState(null);
   const [autoPublishScore, setAutoPublishScore] = useState(5);
-
-  useEffect(() => {
-    loadJobs();
-    const interval = setInterval(loadJobs, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const intervalRef = useRef(null);
 
   const loadJobs = async () => {
     try {
       const response = await getJobs();
-      setJobs(response.data.jobs || {});
+      const newJobs = response.data.jobs || {};
+      setJobs(newJobs);
+      
+      // Adjust polling interval: faster when jobs are running, slower when idle
+      const hasRunningJobs = Object.values(newJobs).some(job => job.status === 'running');
+      const pollInterval = hasRunningJobs ? 3000 : 15000; // 3s if running, 15s if idle
+      
+      // Restart interval with new timing if needed
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      intervalRef.current = setInterval(loadJobs, pollInterval);
     } catch (error) {
       console.error('Failed to load jobs:', error);
     }
   };
+
+  useEffect(() => {
+    loadJobs();
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const showAlert = (type, message) => {
     setAlert({ type, message });

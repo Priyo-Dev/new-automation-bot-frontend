@@ -8,17 +8,43 @@ function ConfigPanel() {
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
   const [editedConfig, setEditedConfig] = useState({});
+  // Store hours and minutes separately for each interval
+  const [intervalInputs, setIntervalInputs] = useState({
+    scout: { hours: 6, minutes: 0 },
+    content_gen: { hours: 2, minutes: 0 },
+    auto_publish: { hours: 3, minutes: 0 },
+  });
 
   useEffect(() => {
     loadConfig();
   }, []);
 
+  // Convert fractional hours to hours and minutes
+  const hoursToHrMin = (fractionalHours) => {
+    const hours = Math.floor(fractionalHours);
+    const minutes = Math.round((fractionalHours - hours) * 60);
+    return { hours, minutes };
+  };
+
+  // Convert hours and minutes to fractional hours
+  const hrMinToHours = (hours, minutes) => {
+    return hours + (minutes / 60);
+  };
+
   const loadConfig = async () => {
     try {
       const response = await getConfig();
-      setConfig(response.data.config);
+      const loadedConfig = response.data.config;
+      setConfig(loadedConfig);
       setEstimates(response.data.estimates);
-      setEditedConfig(response.data.config);
+      setEditedConfig(loadedConfig);
+      
+      // Convert fractional hours to hours+minutes for display
+      setIntervalInputs({
+        scout: hoursToHrMin(loadedConfig.scout_interval_hours || 6),
+        content_gen: hoursToHrMin(loadedConfig.content_gen_interval_hours || 2),
+        auto_publish: hoursToHrMin(loadedConfig.auto_publish_interval_hours || 3),
+      });
     } catch (error) {
       console.error('Failed to load config:', error);
       showAlert('error', 'Failed to load configuration');
@@ -34,6 +60,56 @@ function ConfigPanel() {
 
   const handleChange = (key, value) => {
     setEditedConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleNumberChange = (key, value, min, max, defaultValue) => {
+    // Allow typing - parse the value
+    const numVal = value === '' ? null : parseInt(value, 10);
+    
+    // If it's a valid number within range, update immediately
+    if (numVal !== null && !isNaN(numVal) && numVal >= min && numVal <= max) {
+      handleChange(key, numVal);
+    } else if (value === '') {
+      // Allow clearing the field temporarily, but keep the default in state
+      // The input will show the default value
+      handleChange(key, defaultValue);
+    }
+    // If invalid (like typing letters), don't update state but allow typing to continue
+    // The input's value prop will keep showing what user typed until they enter valid number
+  };
+
+  const handleIntervalChange = (intervalKey, field, value) => {
+    const numValue = parseInt(value) || 0;
+    const clampedValue = field === 'minutes' ? Math.max(0, Math.min(59, numValue)) : Math.max(0, numValue);
+    
+    // Calculate the new interval values
+    const current = intervalInputs[intervalKey];
+    const updated = {
+      ...current,
+      [field]: clampedValue,
+    };
+    
+    // Update the interval inputs state
+    setIntervalInputs(prev => ({
+      ...prev,
+      [intervalKey]: updated,
+    }));
+    
+    // Calculate fractional hours and update editedConfig
+    const fractionalHours = hrMinToHours(updated.hours, updated.minutes);
+    
+    const configKeyMap = {
+      scout: 'scout_interval_hours',
+      content_gen: 'content_gen_interval_hours',
+      auto_publish: 'auto_publish_interval_hours',
+    };
+    
+    handleChange(configKeyMap[intervalKey], fractionalHours);
+  };
+
+  const parseNumberInput = (value) => {
+    const num = parseFloat(value);
+    return Number.isFinite(num) ? num : '';
   };
 
   const handleSave = async () => {
@@ -64,6 +140,14 @@ function ConfigPanel() {
 
   const handleReset = () => {
     setEditedConfig(config);
+    // Reset interval inputs to match config
+    if (config) {
+      setIntervalInputs({
+        scout: hoursToHrMin(config.scout_interval_hours || 6),
+        content_gen: hoursToHrMin(config.content_gen_interval_hours || 2),
+        auto_publish: hoursToHrMin(config.auto_publish_interval_hours || 3),
+      });
+    }
   };
 
   if (loading) {
@@ -127,41 +211,98 @@ function ConfigPanel() {
         </div>
         <div className="config-grid">
           <div className="config-item">
-            <label>Scout Interval (hours)</label>
-            <input
-              type="number"
-              className="form-control"
-              min="1"
-              max="24"
-              value={editedConfig.scout_interval_hours || 6}
-              onChange={(e) => handleChange('scout_interval_hours', parseInt(e.target.value))}
-            />
-            <div className="description">How often to scan for new news (1-24 hours)</div>
+            <label>Scout Interval</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  max="24"
+                  value={intervalInputs.scout.hours}
+                  onChange={(e) => handleIntervalChange('scout', 'hours', e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Hours</div>
+              </div>
+              <div style={{ fontSize: '20px', color: 'var(--text-muted)' }}>:</div>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  max="59"
+                  value={intervalInputs.scout.minutes}
+                  onChange={(e) => handleIntervalChange('scout', 'minutes', e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Minutes</div>
+              </div>
+            </div>
+            <div className="description">How often to scan for new news</div>
           </div>
 
           <div className="config-item">
-            <label>Content Generation Interval (hours)</label>
-            <input
-              type="number"
-              className="form-control"
-              min="1"
-              max="24"
-              value={editedConfig.content_gen_interval_hours || 2}
-              onChange={(e) => handleChange('content_gen_interval_hours', parseInt(e.target.value))}
-            />
+            <label>Content Generation Interval</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  max="24"
+                  value={intervalInputs.content_gen.hours}
+                  onChange={(e) => handleIntervalChange('content_gen', 'hours', e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Hours</div>
+              </div>
+              <div style={{ fontSize: '20px', color: 'var(--text-muted)' }}>:</div>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  max="59"
+                  value={intervalInputs.content_gen.minutes}
+                  onChange={(e) => handleIntervalChange('content_gen', 'minutes', e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Minutes</div>
+              </div>
+            </div>
             <div className="description">How often to generate posts for new items</div>
           </div>
 
           <div className="config-item">
-            <label>Auto-Publish Interval (hours)</label>
-            <input
-              type="number"
-              className="form-control"
-              min="1"
-              max="24"
-              value={editedConfig.auto_publish_interval_hours || 3}
-              onChange={(e) => handleChange('auto_publish_interval_hours', parseInt(e.target.value))}
-            />
+            <label>Auto-Publish Interval</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  max="24"
+                  value={intervalInputs.auto_publish.hours}
+                  onChange={(e) => handleIntervalChange('auto_publish', 'hours', e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Hours</div>
+              </div>
+              <div style={{ fontSize: '20px', color: 'var(--text-muted)' }}>:</div>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  max="59"
+                  value={intervalInputs.auto_publish.minutes}
+                  onChange={(e) => handleIntervalChange('auto_publish', 'minutes', e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Minutes</div>
+              </div>
+            </div>
             <div className="description">How often to auto-publish high-score items</div>
           </div>
         </div>
@@ -181,7 +322,7 @@ function ConfigPanel() {
               min="1"
               max="50"
               value={editedConfig.scout_items_per_source || 8}
-              onChange={(e) => handleChange('scout_items_per_source', parseInt(e.target.value))}
+              onChange={(e) => handleNumberChange('scout_items_per_source', e.target.value, 1, 50, 8)}
             />
             <div className="description">News items to fetch per source during scout</div>
           </div>
@@ -193,8 +334,8 @@ function ConfigPanel() {
               className="form-control"
               min="1"
               max="20"
-              value={editedConfig.content_gen_batch_size || 3}
-              onChange={(e) => handleChange('content_gen_batch_size', parseInt(e.target.value))}
+              value={editedConfig.content_gen_batch_size || 1}
+              onChange={(e) => handleNumberChange('content_gen_batch_size', e.target.value, 1, 20, 1)}
             />
             <div className="description">Items to process per content generation run</div>
           </div>
@@ -207,7 +348,7 @@ function ConfigPanel() {
               min="1"
               max="10"
               value={editedConfig.auto_publish_min_score || 5}
-              onChange={(e) => handleChange('auto_publish_min_score', parseInt(e.target.value))}
+              onChange={(e) => handleNumberChange('auto_publish_min_score', e.target.value, 1, 10, 5)}
             />
             <div className="description">Minimum virality score to auto-publish (1-10)</div>
           </div>
@@ -260,8 +401,7 @@ function ConfigPanel() {
 
       {/* Info Box */}
       <div className="alert alert-info" style={{ marginTop: '24px' }}>
-        <strong>Note:</strong> Configuration changes are saved to the database and take effect on the next scheduled run. 
-        For immediate effect, restart the backend server.
+        <strong>Note:</strong> Configuration changes are saved to the database and applied immediately (scheduler reload).
       </div>
     </div>
   );
