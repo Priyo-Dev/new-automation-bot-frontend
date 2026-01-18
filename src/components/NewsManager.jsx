@@ -255,6 +255,11 @@ function NewsManager() {
                 <span className={`virality-score ${getViralityClass(item.payload.virality_score)}`}>
                   ⭐ {item.payload.virality_score || 0}
                 </span>
+                {item.payload.generation_cost_usd && (
+                  <span style={{ color: 'var(--accent-orange)', fontWeight: 600 }}>
+                    💰 ${item.payload.generation_cost_usd.toFixed(4)}
+                  </span>
+                )}
                 <span>Created: {new Date(item.payload.created_at).toLocaleString()}</span>
                 {item.payload.published_at && (
                   <span>Published: {new Date(item.payload.published_at).toLocaleString()}</span>

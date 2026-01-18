@@ -82,6 +82,18 @@ function Dashboard() {
           <div className="stat-value">{stats?.published_last_24h || 0}</div>
           <div className="stat-label">Published Today</div>
         </div>
+        
+        <div className="stat-card orange">
+          <div className="stat-icon">💰</div>
+          <div className="stat-value">${stats?.total_cost_usd?.toFixed(2) || '0.00'}</div>
+          <div className="stat-label">Total Cost</div>
+        </div>
+        
+        <div className="stat-card green">
+          <div className="stat-icon">💵</div>
+          <div className="stat-value">${stats?.daily_cost_usd?.toFixed(2) || '0.00'}</div>
+          <div className="stat-label">Cost Today</div>
+        </div>
       </div>
 
       {/* Main Grid - 3 columns */}
@@ -112,9 +124,17 @@ function Dashboard() {
               <span>Avg. Virality Score</span>
               <span style={{ color: 'var(--accent-orange)', fontWeight: 600 }}>{stats?.avg_virality_score?.toFixed(1) || '0'}</span>
             </div>
-            <div className="status-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+            <div className="status-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-color)' }}>
               <span>Est. Daily Cost</span>
               <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>${stats?.estimated_daily_cost?.toFixed(2) || '0'}</span>
+            </div>
+            <div className="status-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-color)' }}>
+              <span>Total Cost</span>
+              <span style={{ color: 'var(--accent-orange)', fontWeight: 600 }}>${stats?.total_cost_usd?.toFixed(2) || '0.00'}</span>
+            </div>
+            <div className="status-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+              <span>Cost Today</span>
+              <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>${stats?.daily_cost_usd?.toFixed(2) || '0.00'}</span>
             </div>
           </div>
         </div>
