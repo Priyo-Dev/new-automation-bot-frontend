@@ -68,7 +68,16 @@ export const runFullPipeline = (blocking = false) => api.post(`/system/run-full-
 export const runAutoPublish = (minScore = 5) => api.post(`/system/auto-publish?min_score=${minScore}`);
 
 // Jobs
-export const getJobs = () => api.get('/system/jobs');
+export const getJobs = (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.job_type) queryParams.append('job_type', params.job_type);
+  if (params.status) queryParams.append('status', params.status);
+  if (params.job_name) queryParams.append('job_name', params.job_name);
+  if (params.limit) queryParams.append('limit', params.limit);
+  if (params.offset) queryParams.append('offset', params.offset);
+  const queryString = queryParams.toString();
+  return api.get(`/system/jobs${queryString ? `?${queryString}` : ''}`);
+};
 export const getJobStatus = (jobId) => api.get(`/system/jobs/${jobId}`);
 
 // Logs
@@ -96,6 +105,8 @@ export const listAdmins = () => api.get('/admin/list');
 
 export const createAdmin = (username, password, role = 'admin') =>
   api.post('/admin/create', { username, password, role });
+
+export const updateAdmin = (username, updates) => api.put(`/admin/${username}`, updates);
 
 export const deleteAdmin = (username) => api.delete(`/admin/${username}`);
 

@@ -444,6 +444,7 @@ tr:hover {
 .badge-approved { background: var(--accent-green); color: white; }
 .badge-published { background: var(--accent-purple); color: white; }
 .badge-rejected { background: var(--accent-red); color: white; }
+.badge-errored { background: #dc3545; color: white; }
 
 /* Modal */
 .modal-overlay {
@@ -847,6 +848,12 @@ tr:hover {
   .activity-logs > div[style*="repeat(4, 1fr)"],
   .config-panel > .card > div[style*="repeat(4, 1fr)"] {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard > div[style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
   }
 }
 

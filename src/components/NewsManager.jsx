@@ -198,6 +198,7 @@ function NewsManager() {
             <option value="approved">Approved</option>
             <option value="published">Published</option>
             <option value="rejected">Rejected</option>
+            <option value="errored">Errored (Failed to Publish)</option>
           </select>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-end' }}>
@@ -255,9 +256,14 @@ function NewsManager() {
                 <span className={`virality-score ${getViralityClass(item.payload.virality_score)}`}>
                   ⭐ {item.payload.virality_score || 0}
                 </span>
-                {item.payload.generation_cost_usd && (
-                  <span style={{ color: 'var(--accent-orange)', fontWeight: 600 }}>
-                    💰 ${item.payload.generation_cost_usd.toFixed(4)}
+                {item.payload.status === 'errored' && item.payload.error_message && (
+                  <span style={{ color: '#dc3545', fontWeight: 600, fontSize: '13px' }}>
+                    ⚠️ Error: {item.payload.error_message}
+                  </span>
+                )}
+                {item.payload.generation_cost_usd !== undefined && item.payload.generation_cost_usd !== null && (
+                  <span style={{ color: 'var(--accent-orange)', fontWeight: 600, fontSize: '13px' }}>
+                    💰 Cost: ${(item.payload.generation_cost_usd || 0).toFixed(4)}
                   </span>
                 )}
                 <span>Created: {new Date(item.payload.created_at).toLocaleString()}</span>
@@ -284,7 +290,7 @@ function NewsManager() {
                   </button>
                 )}
                 
-                {/* Approve/Reject for drafted items */}
+                {/* Approve/Reject for drafted items, Retry for errored items */}
                 {item.payload.status === 'drafted' && (
                   <>
                     <button
@@ -304,8 +310,19 @@ function NewsManager() {
                   </>
                 )}
                 
-                {/* Edit button for new and drafted */}
-                {(item.payload.status === 'new' || item.payload.status === 'drafted') && (
+                {/* Retry publish for errored items */}
+                {item.payload.status === 'errored' && (
+                  <button
+                    className="btn btn-success"
+                    onClick={() => handleApprove(item)}
+                    disabled={actionLoading[`${item.id}-approve`]}
+                  >
+                    {actionLoading[`${item.id}-approve`] ? '...' : '🔄 Retry Publish'}
+                  </button>
+                )}
+                
+                {/* Edit button for new, drafted, and errored */}
+                {(item.payload.status === 'new' || item.payload.status === 'drafted' || item.payload.status === 'errored') && (
                   <button
                     className="btn btn-secondary"
                     onClick={() => setEditModal(item)}
@@ -314,8 +331,8 @@ function NewsManager() {
                   </button>
                 )}
                 
-                {/* Regen buttons only for drafted items (they already have content) */}
-                {item.payload.status === 'drafted' && (
+                {/* Regen buttons for drafted and errored items (they already have content) */}
+                {(item.payload.status === 'drafted' || item.payload.status === 'errored') && (
                   <>
                     <button
                       className="btn btn-secondary"

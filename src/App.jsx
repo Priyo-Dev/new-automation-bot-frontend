@@ -23,13 +23,13 @@ function App() {
 
   useEffect(() => {
     // Check if we have admin info stored (token is in HttpOnly cookie)
-    const savedAdmin = localStorage.getItem('admin_info');
-    if (savedAdmin) {
-      try {
+      const savedAdmin = localStorage.getItem('admin_info');
+      if (savedAdmin) {
+        try {
         const admin = JSON.parse(savedAdmin);
         setAdmin(admin);
         setAdminToken('authenticated'); // Set flag to indicate we have admin info
-      } catch {}
+        } catch {}
     }
   }, []);
 

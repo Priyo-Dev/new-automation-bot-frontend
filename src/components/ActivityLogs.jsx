@@ -6,16 +6,25 @@ function ActivityLogs() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    limit: 100,
+    limit: 50,
+    offset: 0,
     activity_type: '',
     level: '',
+  });
+  const [pagination, setPagination] = useState({
+    total: 0,
+    has_more: false,
   });
   const [alert, setAlert] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, [filters]);
+    loadData(true); // Reset to first page when filters change
+  }, [filters.activity_type, filters.level, filters.limit]);
+  
+  useEffect(() => {
+    loadData(false); // Don't reset offset when only offset changes
+  }, [filters.offset]);
 
   useEffect(() => {
     let interval;
@@ -25,14 +34,24 @@ function ActivityLogs() {
     return () => clearInterval(interval);
   }, [autoRefresh, filters]);
 
-  const loadData = async () => {
+  const loadData = async (resetOffset = false) => {
     try {
+      const loadFilters = { ...filters };
+      if (resetOffset) {
+        loadFilters.offset = 0;
+        setFilters(prev => ({ ...prev, offset: 0 }));
+      }
+      
       const [logsRes, summaryRes] = await Promise.all([
-        getLogs(filters),
+        getLogs(loadFilters),
         getLogsSummary(),
       ]);
       setLogs(logsRes.data.logs || []);
       setSummary(summaryRes.data);
+      setPagination({
+        total: logsRes.data.total || 0,
+        has_more: logsRes.data.has_more || false,
+      });
     } catch (error) {
       console.error('Failed to load logs:', error);
     } finally {
@@ -65,10 +84,15 @@ function ActivityLogs() {
     if (type.includes('system')) return '⚡';
     if (type.includes('approved')) return '✅';
     if (type.includes('rejected')) return '❌';
+    if (type.includes('job_failed')) return '💥';
     return '📋';
   };
 
-  const getLevelColor = (level) => {
+  const getLevelColor = (level, type) => {
+    // Partial success types should show as warning
+    if (type && type.includes('partial')) {
+      return 'var(--accent-orange)';
+    }
     switch (level) {
       case 'error': return 'var(--accent-red)';
       case 'warning': return 'var(--accent-orange)';
@@ -131,11 +155,17 @@ function ActivityLogs() {
               <option value="">All Types</option>
               <option value="scout_start">Scout Start</option>
               <option value="scout_complete">Scout Complete</option>
-              <option value="scout_error">Scout Error</option>
+              <option value="scout_partial">Scout Partial Success ⚠️</option>
+              <option value="scout_error">Scout Error ❌</option>
               <option value="content_gen_start">Content Gen Start</option>
               <option value="content_gen_complete">Content Gen Complete</option>
+              <option value="content_gen_partial">Content Gen Partial Success ⚠️</option>
+              <option value="content_gen_error">Content Gen Error ❌</option>
               <option value="auto_publish_start">Auto-Publish Start</option>
               <option value="auto_publish_complete">Auto-Publish Complete</option>
+              <option value="auto_publish_partial">Auto-Publish Partial Success ⚠️</option>
+              <option value="auto_publish_error">Auto-Publish Error ❌</option>
+              <option value="job_failed">Job Failed ❌</option>
               <option value="manual_publish">Manual Publish</option>
               <option value="item_approved">Item Approved</option>
               <option value="item_rejected">Item Rejected</option>
@@ -157,15 +187,15 @@ function ActivityLogs() {
           </div>
 
           <div className="filter-group">
-            <label>Limit</label>
+            <label>Per Page</label>
             <select
               value={filters.limit}
-              onChange={(e) => setFilters(prev => ({ ...prev, limit: parseInt(e.target.value) }))}
+              onChange={(e) => setFilters(prev => ({ ...prev, limit: parseInt(e.target.value), offset: 0 }))}
             >
+              <option value="25">25</option>
               <option value="50">50</option>
               <option value="100">100</option>
               <option value="200">200</option>
-              <option value="500">500</option>
             </select>
           </div>
 
@@ -203,7 +233,7 @@ function ActivityLogs() {
                 <div className="log-entry-header">
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>{getLogIcon(log.type)}</span>
-                    <span className="log-entry-type" style={{ color: getLevelColor(log.level) }}>
+                    <span className="log-entry-type" style={{ color: getLevelColor(log.level, log.type) }}>
                       {log.type.replace(/_/g, ' ')}
                     </span>
                   </span>
@@ -230,6 +260,39 @@ function ActivityLogs() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {logs.length > 0 && (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginTop: '20px',
+          padding: '16px',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)'
+        }}>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            Showing {filters.offset + 1} - {Math.min(filters.offset + filters.limit, pagination.total)} of {pagination.total} logs
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setFilters(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
+              disabled={filters.offset === 0}
+            >
+              ← Previous
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setFilters(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
+              disabled={!pagination.has_more}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
 
       {summary?.last_activity && (
         <div style={{ marginTop: '16px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>

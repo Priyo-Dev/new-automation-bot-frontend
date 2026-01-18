@@ -1,15 +1,27 @@
 import { useState, useEffect } from 'react';
-import { listAdmins, createAdmin, deleteAdmin } from '../api/client';
+import { listAdmins, createAdmin, updateAdmin, deleteAdmin, getCurrentAdmin } from '../api/client';
 
 function AdminPanel() {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [currentAdmin, setCurrentAdmin] = useState(null);
   const [alert, setAlert] = useState(null);
 
   useEffect(() => {
     loadAdmins();
+    loadCurrentAdmin();
   }, []);
+
+  const loadCurrentAdmin = async () => {
+    try {
+      const response = await getCurrentAdmin();
+      setCurrentAdmin(response.data.admin);
+    } catch (error) {
+      console.error('Failed to load current admin:', error);
+    }
+  };
 
   const loadAdmins = async () => {
     try {
@@ -47,6 +59,17 @@ function AdminPanel() {
       loadAdmins();
     } catch (error) {
       showAlertMessage('error', error.response?.data?.detail || 'Failed to create admin');
+    }
+  };
+
+  const handleUpdateAdmin = async (username, updates) => {
+    try {
+      await updateAdmin(username, updates);
+      showAlertMessage('success', `Admin ${username} updated successfully`);
+      setEditingAdmin(null);
+      loadAdmins();
+    } catch (error) {
+      showAlertMessage('error', error.response?.data?.detail || 'Failed to update admin');
     }
   };
 
@@ -117,15 +140,24 @@ function AdminPanel() {
                     <td>{admin.created_at ? new Date(admin.created_at).toLocaleDateString() : '-'}</td>
                     <td>{admin.last_login ? new Date(admin.last_login).toLocaleString() : 'Never'}</td>
                     <td>
-                      {admin.is_active && admin.role !== 'super_admin' && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
                         <button
-                          className="btn btn-danger"
+                          className="btn btn-secondary"
                           style={{ padding: '6px 12px', fontSize: '12px' }}
-                          onClick={() => handleDelete(admin.username)}
+                          onClick={() => setEditingAdmin(admin)}
                         >
-                          🗑️ Deactivate
+                          ✏️ Edit
                         </button>
-                      )}
+                        {admin.is_active && admin.role !== 'super_admin' && (
+                          <button
+                            className="btn btn-danger"
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => handleDelete(admin.username)}
+                          >
+                            🗑️ Deactivate
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -160,6 +192,16 @@ function AdminPanel() {
         <CreateAdminModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateAdmin}
+        />
+      )}
+
+      {/* Edit Admin Modal */}
+      {editingAdmin && (
+        <EditAdminModal
+          admin={editingAdmin}
+          currentAdmin={currentAdmin}
+          onClose={() => setEditingAdmin(null)}
+          onUpdate={handleUpdateAdmin}
         />
       )}
     </div>
@@ -263,6 +305,156 @@ function CreateAdminModal({ onClose, onCreate }) {
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Creating...' : 'Create Admin'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditAdminModal({ admin, currentAdmin, onClose, onUpdate }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState(admin.role);
+  const [isActive, setIsActive] = useState(admin.is_active);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const isEditingSelf = currentAdmin && admin.username === currentAdmin.username;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validate password if provided
+    if (password) {
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
+      }
+    }
+
+    const updates = {};
+    if (password) {
+      updates.password = password;
+    }
+    if (role !== admin.role) {
+      updates.role = role;
+    }
+    if (isActive !== admin.is_active) {
+      updates.is_active = isActive;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setError('No changes to save');
+      return;
+    }
+
+    setLoading(true);
+    await onUpdate(admin.username, updates);
+    setLoading(false);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>✏️ Edit Admin: {admin.username}</h3>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: '20px' }}>
+            ❌ {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              className="form-control"
+              value={admin.username}
+              disabled
+              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+            />
+            <small style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+              Username cannot be changed
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label>New Password (leave blank to keep current)</label>
+            <input
+              type="password"
+              className="form-control"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter new password (min 8 chars)"
+            />
+          </div>
+
+          {password && (
+            <div className="form-group">
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                className="form-control"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+          )}
+
+          <div className="form-group">
+            <label>Role</label>
+            <select
+              className="form-control"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              disabled={isEditingSelf}
+            >
+              <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+            {isEditingSelf && (
+              <small style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                Cannot change your own role
+              </small>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                disabled={isEditingSelf && !isActive}
+              />
+              Active
+            </label>
+            {isEditingSelf && (
+              <small style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                Cannot deactivate yourself
+              </small>
+            )}
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Admin'}
             </button>
           </div>
         </form>
